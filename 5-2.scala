@@ -60,8 +60,6 @@ object Main extends App {
         print(op1)
         iterate(l, p + 2)
       case 5 =>
-        //    Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value
-        //    from the second parameter. Otherwise, it does nothing.
         val op1 = param(l, p, modes, 1)
         val op2 = param(l, p, modes, 2)
 
@@ -71,8 +69,6 @@ object Main extends App {
           iterate(l, p + 3)
         }
       case 6 =>
-        //    Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction pointer to the value
-        //    from the second parameter. Otherwise, it does nothing.
         val op1 = param(l, p, modes, 1)
         val op2 = param(l, p, modes, 2)
 
@@ -82,11 +78,9 @@ object Main extends App {
           iterate(l, p + 3)
         }
       case 7 =>
-        //    Opcode 7 is less than: if the first parameter is less than the second parameter, it stores 1 in the position
-        //    given by the third parameter. Otherwise, it stores 0.
         val op1 = param(l, p, modes, 1)
         val op2 = param(l, p, modes, 2)
-        val op3 = param(l, p, modes, 3, true)
+        val op3 = param(l, p, modes, 3, forcePositionMode = true)
 
         val updatedList = if (op1 < op2) {
           l.patch(op3, List(1), 1)
@@ -96,11 +90,9 @@ object Main extends App {
 
         iterate(updatedList, p + 4)
       case 8 =>
-        //    Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores 1 in the position
-        //    given by the third parameter. Otherwise, it stores 0.
         val op1 = param(l, p, modes, 1)
         val op2 = param(l, p, modes, 2)
-        val op3 = param(l, p, modes, 3, true)
+        val op3 = param(l, p, modes, 3, forcePositionMode = true)
 
         val updatedList = if (op1 == op2) {
           l.patch(op3, List(1), 1)
