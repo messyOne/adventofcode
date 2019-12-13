@@ -1,42 +1,38 @@
 import IntcodeComputer.State
 
-// TODO not working
 object Main extends App {
-  val values = "3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5"
+  val values = "3,8,1001,8,10,8,105,1,0,0,21,42,67,76,89,110,191,272,353,434,99999,3,9,102,2,9,9,1001,9,2,9,1002,9,2,9,1001,9,2,9,4,9,99,3,9,1001,9,4,9,102,4,9,9,101,3,9,9,1002,9,2,9,1001,9,4,9,4,9,99,3,9,102,5,9,9,4,9,99,3,9,1001,9,3,9,1002,9,3,9,4,9,99,3,9,102,3,9,9,101,2,9,9,1002,9,3,9,101,5,9,9,4,9,99,3,9,1001,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,99,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,101,1,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,101,2,9,9,4,9,3,9,101,2,9,9,4,9,99,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,102,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,2,9,9,4,9,99,3,9,102,2,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,1,9,9,4,9,3,9,102,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,99,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,2,9,9,4,9,99"
   private val valuesList = values
     .split(",").map(_.trim.toInt).toList
 
-//  val winner = (5 to 9).toList.permutations.foldLeft(0) {
-  val winner = List(List(9,8,7,6,5)).foldLeft(0) {
+    val winner = (5 to 9).toList.permutations.foldLeft(0) {
     case (throttle, combination) =>
-      val initializedAmplifiers = combination.foldLeft((List.empty[State])) {
-        case (states, phase) =>
-          val input = states.lastOption match {
-            case Some(state) => state.output
-            case None => List(0)
-          }
-
-          val newState = IntcodeComputer.run(State(valuesList, List(phase) ::: input))
-          states :+ newState
-      }
+      val (outputA, stateA) = IntcodeComputer.run(State("A", valuesList, List(combination(0), 0))).readOutput()
+      val (outputB, stateB) = IntcodeComputer.run(State("B", valuesList, List(combination(1), outputA))).readOutput()
+      val (outputC, stateC) = IntcodeComputer.run(State("C", valuesList, List(combination(2), outputB))).readOutput()
+      val (outputD, stateD) = IntcodeComputer.run(State("D", valuesList, List(combination(3), outputC))).readOutput()
+      val stateE = IntcodeComputer.run(State("E", valuesList, List(combination(4), outputD)))
 
       @scala.annotation.tailrec
       def traverse(amplifiers: List[State]): Int = {
         if (amplifiers.last.hasStopped) {
-          amplifiers.last.output.head
+          amplifiers.last.readOutput()._1
         } else {
-          val stateA = IntcodeComputer.continue(amplifiers.head, amplifiers.last.output)
+          val (outputE, stateE) = amplifiers.last.readOutput()
+          val stateA = IntcodeComputer.continue(amplifiers.head, outputE)
 
-          val newStates = amplifiers.tail.foldLeft(List(stateA)) {
+          val newStates = (amplifiers.init :+ stateE).tail.foldLeft(List(stateA)) {
             case (newStates, state) =>
-              IntcodeComputer.continue(state, newStates.head.output) +: newStates
+              val (output, newState) = newStates.last.readOutput()
+
+              (newStates.init :+ newState) :+ IntcodeComputer.continue(state, output)
           }
 
           traverse(newStates)
         }
       }
 
-      val newThrottle = traverse(initializedAmplifiers)
+      val newThrottle = traverse(List(stateA, stateB, stateC, stateD, stateE))
 
       if (newThrottle > throttle) {
         newThrottle
@@ -52,17 +48,20 @@ object IntcodeComputer {
 
   import scala.annotation.tailrec
 
-  case class State(program: List[Int], inputs: List[Int], pointer: Int = 0, output: List[Int] = Nil, isPaused: Boolean = false, hasStopped: Boolean = false) {
+  case class State(label: String, program: List[Int], inputs: List[Int], pointer: Int = 0, output: List[Int] = Nil, isPaused: Boolean = false, hasStopped: Boolean = false) {
     def stop(): State = copy(hasStopped = true)
 
     def addInput(value: Int): State = copy(inputs = inputs :+ value)
+
     def addInput(values: List[Int]): State = copy(inputs = inputs ::: values)
 
     def pause(): State = copy(isPaused = true)
 
     def resume(): State = copy(isPaused = false)
 
-    def writeOutput(value: Int): State = copy(output = output :+ value)
+    def addOutput(value: Int): State = copy(output = output :+ value)
+
+    def readOutput(): (Int, State) = (output.head, copy(output = output.tail))
 
     def readInput(): (Option[Int], State) = {
       inputs.headOption match {
@@ -108,6 +107,7 @@ object IntcodeComputer {
   def run(state: State): State = iterate(state)
 
   def continue(state: State, input: Int): State = run(state.addInput(input).resume())
+
   def continue(state: State, inputs: List[Int]): State = run(state.addInput(inputs).resume())
 
   @tailrec
@@ -195,7 +195,7 @@ object IntcodeComputer {
   private def output(state: State, modes: Int) = {
     val op1 = param(state, modes, 1)
 
-    state.writeOutput(op1).increasePointer(2)
+    state.addOutput(op1).increasePointer(2)
   }
 
   private def input(state: State, modes: Int) = {
@@ -229,4 +229,3 @@ object IntcodeComputer {
     state.updateProgram(updatedProgram).increasePointer(4)
   }
 }
-
