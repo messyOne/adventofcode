@@ -2,7 +2,7 @@ import com.sun.tools.classfile.TypeAnnotation.Position
 
 object Main extends App {
   val input: Seq[List[Char]] = "....#...####.#.#...........#........\n#####..#.#.#......#####...#.#...#...\n##.##..#.#.#.....#.....##.#.#..#....\n...#..#...#.##........#..#.......#.#\n#...##...###...###..#...#.....#.....\n##.......#.....#.........#.#....#.#.\n..#...#.##.##.....#....##..#......#.\n..###..##..#..#...#......##...#....#\n##..##.....#...#.#...#......#.#.#..#\n...###....#..#.#......#...#.......#.\n#....#...##.......#..#.......#..#...\n#...........#.....#.....#.#...#.##.#\n###..#....####..#.###...#....#..#...\n##....#.#..#.#......##.......#....#.\n..#.#....#.#.#..#...#.##.##..#......\n...#.....#......#.#.#.##.....#..###.\n..#.#.###.......#..#.#....##.....#..\n.#.#.#...#..#.#..##.#..........#...#\n.....#.#.#...#..#..#...###.#...#.#..\n#..#..#.....#.##..##...##.#.....#...\n....##....#.##...#..........#.##....\n...#....###.#...##........##.##..##.\n#..#....#......#......###...........\n##...#..#.##.##..##....#..#..##..#.#\n.#....#..##.....#.#............##...\n.###.........#....#.##.#..#.#..#.#..\n#...#..#...#.#.#.....#....#......###\n#...........##.#....#.##......#.#..#\n....#...#..#...#.####...#.#..#.##...\n......####.....#..#....#....#....#.#\n.##.#..###..####...#.......#.#....#.\n#.###....#....#..........#.....###.#\n...#......#....##...##..#..#...###..\n..#...###.###.........#.#..#.#..#...\n.#.#.............#.#....#...........\n..#...#.###...##....##.#.#.#....#.#.".split("\n").toList.map(_.toList)
-  case class Asteroid(position: (Int, Int), distance: Double, arc: Double)
+  case class Asteroid(position: (Int, Int), distance: Double, arc: Double, group: Int = -1)
 
   def analyze(position: (Int, Int)) = {
     input.zipWithIndex.foldLeft(List.empty[Asteroid]) {
@@ -18,7 +18,25 @@ object Main extends App {
     }
   }
 
+//  val result = analyze((25,31)).sortBy(_.distance).groupBy(_.arc).toSeq.sortBy(_._1).map(x => x._1 -> x._2.sortBy(_.distance)).partition(_._1 >= 1.5707963267948966)
 
+  val result = analyze((25,31)).sortBy(a => (a.arc, a.distance)).partition(_.arc >= Math.PI/2)
 
-  print(analyze((x,y)))
+  @scala.annotation.tailrec
+  def traverse(asteroids: List[Asteroid], count: Int = 0, arcBefore: Double = Double.MaxValue): Asteroid = {
+    val a = asteroids.head
+
+    if (count == 200) {
+      a
+    } else {
+      if (a.arc == arcBefore) {
+        traverse(asteroids.tail :+ asteroids.head, count, arcBefore)
+      } else {
+        print(a.position, "\n")
+        traverse(asteroids.tail, count + 1, a.arc)
+      }
+    }
+  }
+
+  print(traverse((result._2 ::: result._1), 1).position) // TODO check with reverse
 }
