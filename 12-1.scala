@@ -1,3 +1,4 @@
+import Main.gravities
 
 object Main extends App {
   val inputString = "<x=-1, y=0, z=2>\n<x=2, y=-10, z=-7>\n<x=4, y=-8, z=8>\n<x=3, y=5, z=-1>"
@@ -13,14 +14,19 @@ object Main extends App {
 
   val gravities = moons.combinations(2).foldLeft(List.tabulate(moons.length)(id => Gravity(id))) {
     case (gravities, a :: b :: Nil) =>
-      val beforeGravity = gravities.find(_.id == a.id).getOrElse(throw new RuntimeException("Not found"))
-      val newGravity = calculateGravity(a, b)
+      def updateGravity(a: Moon, b: Moon): Gravity = {
+        val beforeGravityA = gravities.find(_.id == a.id).getOrElse(throw new RuntimeException("Not found"))
+        val newGravityA = calculateGravity(a, b)
 
-      val updatedGravity = beforeGravity.copy(velocity = beforeGravity.velocity.add(newGravity))
-      // TODO update also b. gravity aplyies both
+        beforeGravityA.copy(velocity = beforeGravityA.velocity.add(newGravityA))
+      }
 
-      gravities.filter(_.id != a.id) :+ updatedGravity
+      gravities.filter(g => !List(a.id, b.id).contains(g.id)) :+ updateGravity(a, b) :+ updateGravity(b, a)
   }
+
+  // run in loop 10 times
+  // Add gravity to velocity for all moons
+  // Add velocity to position on all moons
 
   print(gravities)
 
