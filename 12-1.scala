@@ -9,7 +9,7 @@ object Main extends App {
     case (moons, data) =>
       val pattern(x, y, z) = data._1
 
-      moons :+ Moon(data._2, Position(x.toInt, y.toInt, z.toInt), Velocity())
+      moons :+ Moon(data._2, Vector(x.toInt, y.toInt, z.toInt), Vector())
   }
 
   val gravities = moons.combinations(2).foldLeft(List.tabulate(moons.length)(id => Gravity(id))) {
@@ -25,17 +25,21 @@ object Main extends App {
   }
 
   // run in loop 10 times
-  // Add gravity to velocity for all moons
-  // Add velocity to position on all moons
 
-  print(gravities)
+  val moonsUpdated = gravities.foldLeft(moons) {
+    case (moons, gravity) =>
+      val moon = moons.find(_.id == gravity.id).getOrElse(throw new RuntimeException("Not found"))
+      moons.filter(_.id != moon.id) :+ moon.step(gravity)
+  }
 
-  def calculateGravity(a: Moon, b: Moon): Velocity = {
+  moonsUpdated.foreach(m => print(m.toString))
+
+  def calculateGravity(a: Moon, b: Moon): Vector = {
     val xDelta = compare(a.position.x, b.position.x)
     val yDelta = compare(a.position.y, b.position.y)
     val zDelta = compare(a.position.z, b.position.z)
 
-    Velocity(xDelta, yDelta, zDelta)
+    Vector(xDelta, yDelta, zDelta)
   }
 
   private def compare(x1: Int, x2: Int): Int = {
@@ -47,15 +51,22 @@ object Main extends App {
   }
 }
 
-case class Position(x:Int, y: Int, z: Int)
-case class Velocity(x:Int = 0, y: Int = 0, z: Int = 0) {
-  def add(velocity: Velocity): Velocity = Velocity(x + velocity.x, y + velocity.y, z + velocity.z)
+case class Vector(x:Int = 0, y: Int = 0, z: Int = 0) {
+  def add(velocity: Vector): Vector = Vector(x + velocity.x, y + velocity.y, z + velocity.z)
+
+  override def toString: String = s"<x=${x}, y=${y}, z=${z}>"
 }
-case class Gravity(id: Int, velocity: Velocity = Velocity()) {
+case class Gravity(id: Int, velocity: Vector = Vector()) {
 
 }
 
-case class Moon(id: Int, position: Position, velocity: Velocity) {
+case class Moon(id: Int, position: Vector, velocity: Vector) {
+  def step(gravity: Gravity): Moon = {
+    val newVelocity = velocity.add(gravity.velocity)
+    copy(position = position.add(newVelocity), velocity = newVelocity)
+  }
 
-
+  override def toString: String = {
+    s"Id: ${id}\nPos: ${position}, Vel: ${velocity}\n"
+  }
 }
